@@ -88,7 +88,7 @@ export function handleCommand(cmd: string, entity: Entity, userId: UserId): bool
       const y = parseFloat(params[1])
       const z = parseFloat(params[2])
 
-      if (x === undefined || y === undefined || z === undefined) {
+      if (isNaN(x) || isNaN(y) || isNaN(z)) {
         console.log('invalid move command - params: ' + params)
         return true
       }
@@ -99,7 +99,7 @@ export function handleCommand(cmd: string, entity: Entity, userId: UserId): bool
     }
     case 'metadata': {
       //This command is handled only in the client and only if the caller is a bot
-      if (!Engine.isBot && !isBot(window)) return true
+      if (!Engine.instance.isBot && !isBot(window)) return true
 
       //The params must either be 1 or 2, if it is scene, then 1 other wise 2 - world, max distance
       if (params.length > 0) {
@@ -114,8 +114,6 @@ export function handleCommand(cmd: string, entity: Entity, userId: UserId): bool
       return true
     }
     case 'goTo': {
-      if (!Engine.isBot && !isBot(window)) return true
-
       if (params.length != 1) {
         console.log('invalid params, it should be /goTo landmark')
         return true
@@ -287,15 +285,15 @@ function handleMoveCommand(x: number, y: number, z: number, entity: any) {
 
 function handleMetadataCommand(params: any, entity: any) {
   if (params[0] === 'scene') {
-    console.log('scene_metadata|' + Engine.currentWorld.sceneMetadata)
+    console.log('scene_metadata|' + Engine.instance.currentWorld.sceneMetadata)
   } else {
     const position = getComponent(entity, TransformComponent).position
     const maxDistance: number = parseFloat(params[1])
     let vector: Vector3
     let distance: number = 0
 
-    for (let i in Engine.currentWorld.worldMetadata) {
-      vector = getMetadataPosition(Engine.currentWorld.worldMetadata[i])
+    for (let i in Engine.instance.currentWorld.worldMetadata) {
+      vector = getMetadataPosition(Engine.instance.currentWorld.worldMetadata[i])
 
       distance = position.distanceTo(vector)
       if (distance > maxDistance) continue
@@ -311,9 +309,9 @@ function handleGoToCommand(landmark: string, entity: any) {
   let cDistance: number = 0
   let vector: Vector3
 
-  for (let i in Engine.currentWorld.worldMetadata) {
+  for (let i in Engine.instance.currentWorld.worldMetadata) {
     if (i === landmark) {
-      vector = getMetadataPosition(Engine.currentWorld.worldMetadata[i])
+      vector = getMetadataPosition(Engine.instance.currentWorld.worldMetadata[i])
       cDistance = position.distanceTo(vector)
 
       if (cDistance < distance) {
@@ -394,15 +392,15 @@ async function handleFaceCommand(face: string, entity: any) {
 
   face = face.toLowerCase().trim()
 
-  Engine.inputState.set(nameToInputValue[face], {
+  Engine.instance.inputState.set(nameToInputValue[face], {
     type: InputType.ONEDIM,
-    value: 1,
+    value: [1],
     lifecycleState: LifecycleValue.Changed
   })
 
   await delay(2000)
 
-  Engine.inputState.delete(nameToInputValue[face])
+  Engine.instance.inputState.delete(nameToInputValue[face])
 }
 async function delay(timeout) {
   await this.waitForTimeout(timeout)
@@ -496,7 +494,7 @@ function handleListAllUsersCommand(userId) {
   const players = getRemoteUsers(userId, true)
   if (players === undefined) return
 
-  const playerNames = players.map((userId) => Engine.currentWorld.clients.get(userId)?.name)
+  const playerNames = players.map((userId) => Engine.instance.currentWorld.clients.get(userId)?.name)
   console.log('players|' + playerNames)
 }
 function handleGetLocalUserIdCommand(userId) {
@@ -544,7 +542,7 @@ async function handleLookAt(param: string, entity: number, userId: string) {
     const theta = -lookAt(selfPos, undefined, remotePos)
     console.log('new camera angle:', theta)
 
-    Engine.inputState.set(BaseInput.LOOKTURN_PLAYERONE, {
+    Engine.instance.inputState.set(BaseInput.LOOKTURN_PLAYERONE, {
       type: InputType.TWODIM,
       value: [0.5, 0],
       lifecycleState: LifecycleValue.Changed
@@ -552,7 +550,7 @@ async function handleLookAt(param: string, entity: number, userId: string) {
 
     await delay(500)
 
-    Engine.inputState.delete(BaseInput.LOOKTURN_PLAYERONE)
+    Engine.instance.inputState.delete(BaseInput.LOOKTURN_PLAYERONE)
 
     //setTargetCameraRotation(entity, getComponent(entity, FollowCameraComponent).phi, theta)
 
